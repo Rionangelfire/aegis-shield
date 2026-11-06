@@ -1,0 +1,38 @@
+<!-- 3. ADVANCED SECURITY OPERATIONS CONSOLE (UI SHELL) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AEGIS SHIELD // Security Operations Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-mono">
+    <div class="flex h-screen">
+        <!-- Sidebar / Threat Radar -->
+        <div class="w-1/4 border-r border-slate-800 p-4">
+            <h1 class="text-xl font-bold text-cyan-400">AEGIS SHIELD v2.x</h1>
+            <p class="text-xs text-slate-400 mt-1">Status: SYSTEM NOMINAL</p>
+            <div class="mt-6">
+                <span class="text-sm uppercase tracking-wider text-slate-500">Active Parameters</span>
+                <div class="mt-2 text-xs bg-slate-900 p-2 rounded border border-slate-800">
+                    <div>Veil Resonator: <span class="text-green-400">ONLINE</span></div>
+                    <div>Apex Resonance: <span class="text-cyan-400">READY</span></div>
+                </div>
+            </div>
+        </div>
+        <!-- Main Monitoring & Terminal Queue -->
+        <div class="flex-1 flex flex-col">
+            <header class="h-16 border-b border-slate-800 flex items-center px-6 justify-between">
+                <span class="text-sm font-semibold">SOC Operator Console // Threat Telemetry Stream</span>
+                <span class="text-xs px-2 py-1 bg-red-950 text-red-400 rounded border border-red-800">MITRE T1486 Ready</span>
+            </header>
+            <main class="flex-1 p-6 overflow-y-auto space-y-4">
+                <div class="bg-slate-900 p-4 rounded border border-slate-800">
+                    <div class="text-xs text-slate-400">EVENT_LOG // 2026-06-02</div>
+                    <div class="text-sm mt-1 text-amber-400">[CRITICAL] Anomaly detected in packet stream. Initiating auto-blocking protocol.</div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
