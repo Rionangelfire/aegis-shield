@@ -1,38 +1,150 @@
-<!-- 3. ADVANCED SECURITY OPERATIONS CONSOLE (UI SHELL) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AEGIS SHIELD // Security Operations Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 font-mono">
-    <div class="flex h-screen">
-        <!-- Sidebar / Threat Radar -->
-        <div class="w-1/4 border-r border-slate-800 p-4">
-            <h1 class="text-xl font-bold text-cyan-400">AEGIS SHIELD v2.x</h1>
-            <p class="text-xs text-slate-400 mt-1">Status: SYSTEM NOMINAL</p>
-            <div class="mt-6">
-                <span class="text-sm uppercase tracking-wider text-slate-500">Active Parameters</span>
-                <div class="mt-2 text-xs bg-slate-900 p-2 rounded border border-slate-800">
-                    <div>Veil Resonator: <span class="text-green-400">ONLINE</span></div>
-                    <div>Apex Resonance: <span class="text-cyan-400">READY</span></div>
+<body class="bg-slate-950 text-slate-100 font-mono flex h-screen overflow-hidden">
+
+    <!-- Sidebar / System State -->
+    <aside class="w-80 border-r border-slate-800 p-5 flex flex-col justify-between bg-slate-900/40">
+        <div>
+            <div class="flex items-center gap-2">
+                <div class="h-3 w-3 rounded-full bg-cyan-500 animate-pulse"></div>
+                <h1 class="text-lg font-bold text-cyan-400 tracking-wide">AEGIS SHIELD v2.x</h1>
+            </div>
+            <p id="system-status" class="text-xs text-slate-400 mt-1">Status: INITIALIZING LISTENERS...</p>
+
+            <div class="mt-8 space-y-4">
+                <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Active Control Parameters</div>
+                <div class="text-xs bg-slate-900 p-3 rounded-lg border border-slate-800 space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Veil Resonator:</span>
+                        <span class="text-emerald-400 font-bold">ONLINE</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Apex Resonance:</span>
+                        <span class="text-cyan-400 font-bold">READY</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Harmonic Engine:</span>
+                        <span class="text-amber-400 font-bold">ACTIVE</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Telemetry Metrics -->
+            <div class="mt-6 space-y-2">
+                <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Session Metrics</div>
+                <div class="grid grid-cols-2 gap-2 text-center text-xs">
+                    <div class="bg-slate-900 p-2 rounded border border-slate-800">
+                        <div class="text-slate-400">Total Logs</div>
+                        <div id="count-total" class="text-lg font-bold text-slate-200">0</div>
+                    </div>
+                    <div class="bg-slate-900 p-2 rounded border border-slate-800">
+                        <div class="text-slate-400">Threats</div>
+                        <div id="count-threats" class="text-lg font-bold text-red-400">0</div>
+                    </div>
                 </div>
             </div>
         </div>
-        <!-- Main Monitoring & Terminal Queue -->
-        <div class="flex-1 flex flex-col">
-            <header class="h-16 border-b border-slate-800 flex items-center px-6 justify-between">
-                <span class="text-sm font-semibold">SOC Operator Console // Threat Telemetry Stream</span>
-                <span class="text-xs px-2 py-1 bg-red-950 text-red-400 rounded border border-red-800">MITRE T1486 Ready</span>
-            </header>
-            <main class="flex-1 p-6 overflow-y-auto space-y-4">
-                <div class="bg-slate-900 p-4 rounded border border-slate-800">
-                    <div class="text-xs text-slate-400">EVENT_LOG // 2026-06-02</div>
-                    <div class="text-sm mt-1 text-amber-400">[CRITICAL] Anomaly detected in packet stream. Initiating auto-blocking protocol.</div>
-                </div>
-            </main>
+
+        <div class="text-[10px] text-slate-600 border-t border-slate-800/80 pt-3">
+            Aegis Shield SOC Core // Operational Baseline
         </div>
-    </div>
+    </aside>
+
+    <!-- Main Live Stream Dashboard -->
+    <main class="flex-1 flex flex-col h-full bg-slate-950">
+        <header class="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/20">
+            <div class="flex items-center gap-3">
+                <span class="text-sm font-medium tracking-wide text-slate-300">Live Telemetry Stream</span>
+                <span id="connection-badge" class="text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">DISCONNECTED</span>
+            </div>
+            <span class="text-xs px-3 py-1 bg-red-950/80 text-red-400 rounded-full border border-red-800/80">MITRE T1486 Monitor Active</span>
+        </header>
+
+        <!-- Dynamic Log Feed Window -->
+        <section id="telemetry-feed" class="flex-1 p-6 overflow-y-auto space-y-3 font-mono text-xs">
+            <div class="text-slate-600 italic">Awaiting connection to telemetry_engine.py at http://localhost:8080/stream...</div>
+        </section>
+    </main>
+
+    <!-- Client Wiring Script -->
+    <script>
+        const feedContainer = document.getElementById('telemetry-feed');
+        const badge = document.getElementById('connection-badge');
+        const statusText = document.getElementById('system-status');
+        const totalCounter = document.getElementById('count-total');
+        const threatCounter = document.getElementById('count-threats');
+
+        let totalLogs = 0;
+        let totalThreats = 0;
+
+        // Establish SSE connection to local telemetry engine
+        const eventSource = new EventSource('http://localhost:8080/stream');
+
+        eventSource.onopen = () => {
+            badge.textContent = 'LIVE // CONNECTED';
+            badge.className = 'text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800';
+            statusText.textContent = 'Status: STREAMING TELEMETRY';
+            feedContainer.innerHTML = ''; // Clear placeholder text
+        };
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            totalLogs++;
+            totalCounter.textContent = totalLogs;
+
+            const isCritical = data.severity === 'CRITICAL';
+            const isElevated = data.severity === 'ELEVATED';
+            
+            if (isCritical || isElevated) {
+                totalThreats++;
+                threatCounter.textContent = totalThreats;
+            }
+
+            // Style configurations based on threat severity
+            let borderStyle = 'border-slate-800 bg-slate-900/60 text-slate-300';
+            let tagStyle = 'bg-slate-800 text-slate-400 border-slate-700';
+            
+            if (isElevated) {
+                borderStyle = 'border-amber-900/60 bg-amber-950/20 text-amber-200';
+                tagStyle = 'bg-amber-950 text-amber-400 border-amber-800';
+            } else if (isCritical) {
+                borderStyle = 'border-red-900/80 bg-red-950/30 text-red-200 animate-pulse';
+                tagStyle = 'bg-red-950 text-red-400 border-red-800';
+            }
+
+            // Create Event Card
+            const card = document.createElement('div');
+            card.className = `p-4 rounded-lg border ${borderStyle} transition-all duration-200`;
+            card.innerHTML = `
+                <div class="flex items-center justify-between text-[11px] mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold border px-1.5 py-0.5 rounded ${tagStyle}">${data.severity}</span>
+                        <span class="text-slate-400">${data.timestamp}</span>
+                        <span class="text-slate-500 font-semibold">// IP: ${data.ip}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500 font-mono">TACTIC: ${data.tactic}</span>
+                </div>
+                <div class="text-sm mt-1 font-medium">${data.message}</div>
+                <div class="mt-2 text-[10px] flex items-center justify-between text-slate-500 border-t border-slate-800/60 pt-1.5">
+                    <span>Mitigation State: ${data.mitigated ? '<strong class="text-emerald-400">AUTO-DEFENSE EXECUTED</strong>' : '<strong class="text-red-400">ACTION REQUIRED</strong>'}</span>
+                    <span>Engine Target: localhost:8080</span>
+                </div>
+            `;
+
+            feedContainer.prepend(card);
+        };
+
+        eventSource.onerror = () => {
+            badge.textContent = 'ENGINE OFFLINE';
+            badge.className = 'text-[10px] px-2 py-0.5 rounded bg-red-950 text-red-400 border border-red-800';
+            statusText.textContent = 'Status: RECONNECTING TO ENGINE...';
+        };
+    </script>
 </body>
 </html>
