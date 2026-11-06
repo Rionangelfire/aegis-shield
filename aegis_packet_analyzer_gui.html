@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS // Packet Analyzer v1.5 GUI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-mono flex h-screen overflow-hidden select-none">
+
+    <!-- Left Control & State Sidebar -->
+    <aside class="w-80 border-r border-slate-800 p-5 flex flex-col justify-between bg-slate-900/40">
+        <div class="space-y-6">
+            <!-- Header -->
+            <div>
+                <div class="flex items-center gap-2">
+                    <div id="status-dot" class="h-3 w-3 rounded-full bg-slate-600"></div>
+                    <h1 class="text-base font-bold text-cyan-400 tracking-wider">AEGIS ANALYZER v1.5</h1>
+                </div>
+                <p id="engine-state-text" class="text-xs text-slate-400 mt-1">ENGINE: IDLE</p>
+            </div>
+
+            <!-- Operational Controls -->
+            <div class="space-y-2">
+                <button id="btn-toggle" onclick="toggleEngine()" class="w-full py-2.5 px-4 rounded font-bold text-xs flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 transition-all shadow-lg shadow-emerald-950/40">
+                    <i class="fa-solid fa-play"></i> START CAPTURE ENGINE
+                </button>
+                <button onclick="clearCaptureLogs()" class="w-full py-2 px-4 rounded text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i> Clear Terminal Log
+                </button>
+            </div>
+
+            <!-- Session Stats Panel -->
+            <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800 space-y-3">
+                <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold flex items-center justify-between">
+                    <span>Telemetry Stats</span>
+                    <i class="fa-solid fa-chart-pie text-slate-600"></i>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-center text-xs">
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                        <div class="text-[10px] text-slate-500">TOTAL PKTS</div>
+                        <div id="stat-total" class="text-lg font-bold text-slate-200">0</div>
+                    </div>
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                        <div class="text-[10px] text-slate-500">INFO</div>
+                        <div id="stat-info" class="text-lg font-bold text-slate-400">0</div>
+                    </div>
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                        <div class="text-[10px] text-amber-500/80">ELEVATED</div>
+                        <div id="stat-elevated" class="text-lg font-bold text-amber-400">0</div>
+                    </div>
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                        <div class="text-[10px] text-red-500/80">CRITICAL</div>
+                        <div id="stat-critical" class="text-lg font-bold text-red-400">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stateful Inspection Memory Watcher -->
+            <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800 space-y-2">
+                <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold flex items-center justify-between">
+                    <span>Stateful Memory Watch</span>
+                    <i class="fa-solid fa-microchip text-slate-600"></i>
+                </div>
+                <div class="space-y-1.5 text-xs">
+                    <div class="flex justify-between items-center text-slate-400">
+                        <span>Entropy Spike Tracker:</span>
+                        <span id="state-entropy" class="font-bold text-cyan-400">0 / 3</span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                        <div id="entropy-bar" class="bg-cyan-500 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-400 pt-1">
+                        <span>Tracked Active IPs:</span>
+                        <span id="state-ip-count" class="font-bold text-slate-300">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Evidence Button -->
+        <div class="space-y-2">
+            <button onclick="exportJSONLEvidence()" class="w-full py-2 px-3 rounded text-[11px] bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-900/50 flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-file-code"></i> Download JSONL Evidence
+            </button>
+            <div class="text-[10px] text-slate-600 border-t border-slate-800/80 pt-2 text-center">
+                Aegis Packet Analyzer // HTML5 GUI Node
+            </div>
+        </div>
+    </aside>
+
+    <!-- Right Telemetry Terminal & Details View -->
+    <main class="flex-1 flex flex-col h-full bg-slate-950">
+        <!-- Dashboard Header -->
+        <header class="h-14 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/20">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-network-wired text-cyan-500"></i>
+                <span class="text-xs font-semibold tracking-wider text-slate-300">LIVE PACKET INSPECTION & SIGNATURE STREAM</span>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-slate-400">
+                <span>Target: <strong class="text-slate-200">eth0 (Mock Engine)</strong></span>
+                <span id="pcap-badge" class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 text-[10px]">JSONL AUTO-LOGGING</span>
+            </div>
+        </header>
+
+        <!-- Live Terminal Stream Feed -->
+        <section id="terminal-feed" class="flex-1 p-5 overflow-y-auto space-y-2.5 font-mono text-xs">
+            <div class="text-slate-600 italic">Engine idle. Click "START CAPTURE ENGINE" to begin stateful packet inspection stream...</div>
+        </section>
+
+        <!-- Dynamic Event Inspector Footer -->
+        <footer class="h-28 border-t border-slate-800 p-4 bg-slate-900/40 text-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-500 text-[11px]">
+                <span class="font-semibold text-slate-400">INSPECTED EVENT METADATA PAYLOAD</span>
+                <span id="selected-id" class="text-cyan-400">No event selected</span>
+            </div>
+            <div id="inspector-body" class="grid grid-cols-4 gap-4 text-slate-300 font-mono text-[11px] bg-slate-950 p-2.5 rounded border border-slate-800/80">
+                <div><span class="text-slate-500">SRC:</span> <span id="insp-src" class="text-slate-400">--</span></div>
+                <div><span class="text-slate-500">DST:</span> <span id="insp-dst" class="text-slate-400">--</span></div>
+                <div><span class="text-slate-500">TACTIC:</span> <span id="insp-tactic" class="text-slate-400">--</span></div>
+                <div><span class="text-slate-500">TECHNIQUE:</span> <span id="insp-tech" class="text-slate-400">--</span></div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Engine Script -->
+    <script>
+        let isRunning = false;
+        let captureTimer = null;
+        
+        // Stateful Inspection Storage
+        const connectionCounts = {};
+        let entropySpikes = 0;
+        
+        // Session Metrics
+        let totalPkts = 0;
+        let infoCount = 0;
+        let elevatedCount = 0;
+        let criticalCount = 0;
+
+        const capturedTelemetry = [];
+
+        function toggleEngine() {
+            const btn = document.getElementById('btn-toggle');
+            const dot = document.getElementById('status-dot');
+            const statusTxt = document.getElementById('engine-state-text');
+
+            if (!isRunning) {
+                isRunning = true;
+                btn.innerHTML = `<i class="fa-solid fa-pause"></i> PAUSE CAPTURE ENGINE`;
+                btn.className = "w-full py-2.5 px-4 rounded font-bold text-xs flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all shadow-lg shadow-amber-950/40";
+                dot.className = "h-3 w-3 rounded-full bg-emerald-500 animate-pulse";
+                statusTxt.textContent = "ENGINE: RECORDING & INSPECTING";
+
+                const feed = document.getElementById('terminal-feed');
+                if (feed.innerHTML.includes("Engine idle")) feed.innerHTML = "";
+
+                captureTimer = setInterval(capturePacketCycle, 1200);
+            } else {
+                isRunning = false;
+                btn.innerHTML = `<i class="fa-solid fa-play"></i> RESUME CAPTURE ENGINE`;
+                btn.className = "w-full py-2.5 px-4 rounded font-bold text-xs flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 transition-all shadow-lg shadow-emerald-950/40";
+                dot.className = "h-3 w-3 rounded-full bg-amber-500";
+                statusTxt.textContent = "ENGINE: PAUSED";
+
+                clearInterval(captureTimer);
+            }
+        }
+
+        function capturePacketCycle() {
+            // 1. Mock Raw Header Parsing
+            const srcIp = `192.168.1.${Math.floor(Math.random() * 244) + 10}`;
+            const dstIp = "192.168.1.1";
+            const protocols = ["TCP", "UDP", "ICMP"];
+            const protocol = protocols[Math.floor(Math.random() * protocols.length)];
+            const srcPort = Math.floor(Math.random() * 64511) + 1024;
+            const dstPorts = [80, 443, 22, 445, 3389, 53, 5985];
+            const dstPort = dstPorts[Math.floor(Math.random() * dstPorts.length)];
+            const length = Math.floor(Math.random() * 1436) + 64;
+
+            // Stateful memory update
+            connectionCounts[srcIp] = (connectionCounts[srcIp] || 0) + 1;
+            if (Math.random() < 0.08) entropySpikes += 1;
+
+            // Update UI State Watcher
+            document.getElementById('state-entropy').textContent = `${entropySpikes} / 3`;
+            document.getElementById('entropy-bar').style.width = `${(entropySpikes / 3) * 100}%`;
+            document.getElementById('state-ip-count').textContent = Object.keys(connectionCounts).length;
+
+            // 2. Stateful Threat Signature Engine
+            let threat = null;
+
+            // Rule 1: Stateful Brute Force Detection
+            if (connectionCounts[srcIp] > 4 && [22, 443, 3389].includes(dstPort)) {
+                threat = {
+                    severity: "ELEVATED",
+                    message: `Repeated authentication failures detected from ${srcIp}`,
+                    tactic: "TA0006",
+                    technique: "T1110.001",
+                    asset_group: "Authentication",
+                    confidence: 94,
+                    response_hint: "LOCK_ACCOUNT",
+                    mitigated: true,
+                    host: "DC-01"
+                };
+            }
+            // Rule 2: WinRM / PowerShell Remote Execution
+            else if (dstPort === 5985) {
+                threat = {
+                    severity: "CRITICAL",
+                    message: "Encoded WinRM/PowerShell remote execution payload observed",
+                    tactic: "TA0002",
+                    technique: "T1059.001",
+                    asset_group: "Workstation-Finance",
+                    confidence: 92,
+                    response_hint: "ISOLATE_HOST",
+                    mitigated: false,
+                    host: "FIN-WS-09"
+                };
+            }
+            // Rule 3: High Risk SMB / Remote Desktop
+            else if ([3389, 445].includes(dstPort)) {
+                threat = {
+                    severity: "ELEVATED",
+                    message: `Remote service execution attempt detected on port ${dstPort}`,
+                    tactic: "TA0008",
+                    technique: "T1021.002",
+                    asset_group: "Internal-Network",
+                    confidence: 88,
+                    response_hint: "REVOKE_SESSION",
+                    mitigated: true,
+                    host: "DC-01"
+                };
+            }
+            // Rule 4: Ransomware Volume Entropy Spike
+            else if (entropySpikes >= 3) {
+                entropySpikes = 0; // Reset counter
+                threat = {
+                    severity: "CRITICAL",
+                    message: "Mass file encryption behavior & volume entropy spike detected",
+                    tactic: "TA0040",
+                    technique: "T1486",
+                    asset_group: "Storage-SAN",
+                    confidence: 99,
+                    response_hint: "ENGAGE_VEIL_RESONATOR",
+                    mitigated: false,
+                    host: "SRV-DB-02"
+                };
+            }
+            // Rule 5: DNS Anomaly / C2 Tunneling
+            else if (dstPort === 53 && length > 500) {
+                threat = {
+                    severity: "CRITICAL",
+                    message: "Large UDP DNS payload detected - potential C2 tunneling",
+                    tactic: "TA0011",
+                    technique: "T1071.004",
+                    asset_group: "Core-Servers",
+                    confidence: 91,
+                    response_hint: "BLOCK_IP",
+                    mitigated: false,
+                    host: "SRV-DB-02"
+                };
+            }
+            // Default: Baseline Traffic
+            else {
+                threat = {
+                    severity: "INFO",
+                    message: `Standard ${protocol} network packet processed`,
+                    tactic: "TA0001",
+                    technique: "T1078",
+                    asset_group: "Infrastructure",
+                    confidence: 100,
+                    response_hint: "NONE",
+                    mitigated: true,
+                    host: "WS-001"
+                };
+            }
+
+            // Assemble complete Aegis Telemetry Object
+            const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+            const randId = Math.floor(Math.random() * 89999) + 10000;
+            
+            const telemetry = {
+                event_id: `AEG-${dateStr}-${randId}`,
+                timestamp: new Date().toLocaleTimeString(),
+                src_ip: srcIp,
+                dst_ip: dstIp,
+                protocol: protocol,
+                src_port: srcPort,
+                dst_port: dstPort,
+                length: length,
+                ...threat
+            };
+
+            capturedTelemetry.push(telemetry);
+            updateSessionMetrics(telemetry.severity);
+            renderEventCard(telemetry);
+        }
+
+        function updateSessionMetrics(severity) {
+            totalPkts++;
+            if (severity === "INFO") infoCount++;
+            else if (severity === "ELEVATED") elevatedCount++;
+            else if (severity === "CRITICAL") criticalCount++;
+
+            document.getElementById('stat-total').textContent = totalPkts;
+            document.getElementById('stat-info').textContent = infoCount;
+            document.getElementById('stat-elevated').textContent = elevatedCount;
+            document.getElementById('stat-critical').textContent = criticalCount;
+        }
+
+        function renderEventCard(t) {
+            const feed = document.getElementById('terminal-feed');
+            
+            let cardBg = "bg-slate-900/60 border-slate-800 text-slate-300";
+            let badgeBg = "bg-slate-800 text-slate-400 border-slate-700";
+            
+            if (t.severity === "ELEVATED") {
+                cardBg = "bg-amber-950/20 border-amber-900/60 text-amber-200";
+                badgeBg = "bg-amber-950 text-amber-400 border-amber-800";
+            } else if (t.severity === "CRITICAL") {
+                cardBg = "bg-red-950/30 border-red-900/80 text-red-200 animate-pulse";
+                badgeBg = "bg-red-950 text-red-400 border-red-800";
+            }
+
+            const card = document.createElement('div');
+            card.className = `p-3 rounded border ${cardBg} cursor-pointer hover:border-cyan-500/80 transition-all duration-150`;
+            card.onclick = () => inspectEvent(t);
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between text-[11px] mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold border px-1.5 py-0.5 rounded ${badgeBg}">${t.severity}</span>
+                        <span class="text-slate-400">${t.timestamp}</span>
+                        <span class="text-cyan-400 font-semibold">${t.event_id}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400">TECHNIQUE: ${t.technique}</span>
+                </div>
+                <div class="text-xs font-semibold mt-1">${t.message}</div>
+                <div class="mt-2 text-[10px] flex items-center justify-between text-slate-400 border-t border-slate-800/60 pt-1.5">
+                    <span>SRC: ${t.src_ip}:${t.src_port} &rarr; DST: ${t.dst_ip}:${t.dst_port}</span>
+                    <span>Action Hint: <strong class="${t.response_hint !== 'NONE' ? 'text-amber-400' : 'text-slate-400'}">${t.response_hint}</strong></span>
+                </div>
+            `;
+
+            feed.prepend(card);
+        }
+
+        function inspectEvent(t) {
+            document.getElementById('selected-id').textContent = `${t.event_id} (${t.host})`;
+            document.getElementById('insp-src').textContent = `${t.src_ip}:${t.src_port}`;
+            document.getElementById('insp-dst').textContent = `${t.dst_ip}:${t.dst_port}`;
+            document.getElementById('insp-tactic').textContent = t.tactic;
+            document.getElementById('insp-tech').textContent = `${t.technique} (${t.confidence}% conf)`;
+        }
+
+        function clearCaptureLogs() {
+            document.getElementById('terminal-feed').innerHTML = '<div class="text-slate-600 italic">Terminal log cleared. Awaiting engine stream...</div>';
+        }
+
+        function exportJSONLEvidence() {
+            if (capturedTelemetry.length === 0) {
+                alert("No telemetry captured yet to export.");
+                return;
+            }
+            const jsonlContent = capturedTelemetry.map(t => JSON.stringify(t)).join("\n");
+            const blob = new Blob([jsonlContent], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "aegis_events.jsonl";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
