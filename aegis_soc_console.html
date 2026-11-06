@@ -128,9 +128,10 @@
                         <span class="text-slate-400">${data.timestamp}</span>
                         <span class="text-slate-500 font-semibold">// IP: ${data.ip}</span>
                     </div>
-                    <span class="text-[10px] text-slate-500 font-mono">TACTIC: ${data.tactic}</span>
+                    <span class="text-[10px] text-slate-500 font-mono">TACTIC: ${data.tactic}${data.technique ? ' / ' + data.technique : ''}</span>
                 </div>
                 <div class="text-sm mt-1 font-medium">${data.message}</div>
+                <div class="mt-1 text-[10px] text-slate-500">HOST: ${data.host || '—'} // ASSET: ${data.asset_group || '—'} // CONFIDENCE: ${data.confidence != null ? data.confidence + '%' : '—'} // ID: ${data.event_id || '—'}</div>
                 <div class="mt-2 text-[10px] flex items-center justify-between text-slate-500 border-t border-slate-800/60 pt-1.5">
                     <span>Mitigation State: ${data.mitigated ? '<strong class="text-emerald-400">AUTO-DEFENSE EXECUTED</strong>' : '<strong class="text-red-400">ACTION REQUIRED</strong>'}</span>
                     <span>Engine Target: localhost:8080</span>
