@@ -27,3 +27,5 @@ The interactive single-file simulator will be added here when the source file is
 ## Built by
 
 Robert Bostick — CTU Online, B.S. Computer Science (cybersecurity focus), Hillsboro, Texas.
+
+AI-generated video: the demo video's narration is an AI voice speaking as my avatar — made with AI for fun to walk through this project. That's not my real voice.
