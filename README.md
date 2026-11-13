@@ -1,6 +1,6 @@
 # Aegis Shield 🛡️
 
-A single-file mobile **IOC / SOC simulator** — built to practice detection, threshold tuning, and MITRE mapping with synthetic data.
+A SOC simulation platform — a Python telemetry engine (v2.3) streaming MITRE-mapped synthetic events to a browser console, plus a Packet Analyzer (v1.5) with stateful inspection rules. Built to practice detection, threshold tuning, and analyst workflow with synthetic data.
 
 ## Modes
 
@@ -21,8 +21,6 @@ A single-file mobile **IOC / SOC simulator** — built to practice detection, th
 
 - `aegis-shield-portfolio.pdf` — the full demonstration portfolio (10 pages)
 - Screenshots of all three modes: standby, storm, ransomware
-
-The interactive single-file simulator will be added here when the source file is ready.
 
 ## Built by
 
